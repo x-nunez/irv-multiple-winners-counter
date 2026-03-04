@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+import argparse
+import random
+
+VERBOSE = True
+
+def get_less_voted(candidates: list, ballots: list[list]) -> list:
+	"""
+	Calculate less voted candidate(s)
+	Args:
+		candidates (list): A list of candidates
+		ballots (list[list]): A list of ballots, where each ballot is a list of ranked candidates
+	Returns:
+		list: A list of less voted candidate(s)
+	"""
+	votes = [0] * len(candidates)
+
+	for b in ballots:
+		votes[candidates.index(b[0])] += 1
+
+	min_votes = min(votes)
+	return [candidates[i] for i in range(len(candidates)) if votes[i] == min_votes]
+
+def restricted_recount(tied: list, ballots: list[list]) -> list:
+	"""
+	Perform a restricted pairwise recount among tied candidates.
+	For each ballot, find the highest-ranked candidate among `tied` and
+	give them one vote. Return the candidate(s) with the fewest votes.
+	Args:
+		tied (list): The candidates tied for elimination
+		ballots (list[list]): The current ballots (full rankings)
+	Returns:
+		list: The candidate(s) with the lowest restricted recount total
+	"""
+	votes = {c: 0 for c in tied}
+
+	for b in ballots:
+		for candidate in b:
+			if candidate in votes:
+				votes[candidate] += 1
+				break # The first match is the highest-ranked
+
+	min_votes = min(votes.values())
+	return [c for c in tied if votes[c] == min_votes]
+
+def eliminate_less_voted(candidates: list, ballots: list[list], less_voted: list):
+	"""
+	Eliminate the less voted candidate(s) from candidates list and ballots
+	Args:
+		candidates (list): A list of candidates
+		ballots (list[list]): A list of ballots, where each ballot is a list of ranked candidates
+		less_voted (list): A list of less voted candidate(s)
+	"""
+	for c in less_voted:
+		candidates.remove(c)
+
+		for b in ballots:
+			if c in b:
+				b.remove(c)
+
+	while [] in ballots:
+		ballots.remove([])
+
+def counter(candidates: list, ballots: list[list], n: int):
+	"""
+	Determine winners using Instant Runoff Voting
+	Args:
+		candidates (list): A list of candidates
+		ballots (list[list]): A list of ballots, where each ballot is a list of ranked candidates
+		n (int): The number of candidates to select
+	"""
+	candidates_left = candidates.copy()
+	ballots_left = [b.copy() for b in ballots]
+
+	if VERBOSE:
+			print(f"Candidates: {candidates}")
+
+	round = 0
+	while (len(candidates_left) > n):
+		round += 1
+		if VERBOSE:
+			print(f"Round {round}:")
+
+		less_voted = get_less_voted(candidates_left, ballots_left)
+
+		tie = len(candidates_left) - len(less_voted) < n
+
+		if tie:
+			recount_less_voted = restricted_recount(less_voted, ballots_left)
+
+			if VERBOSE:
+				print(f"\tTie among {less_voted}, restricted recount selects for elimination: {recount_less_voted}")
+
+			if len(recount_less_voted) < len(less_voted):
+				less_voted = recount_less_voted
+				tie = len(candidates_left) - len(less_voted) < n
+
+		eliminate_less_voted(candidates_left, ballots_left, less_voted)
+
+		if VERBOSE and tie:
+			print(f"\tRemains: {candidates_left}, tied {less_voted}, random tie-break proposal: {random.sample(less_voted, n - len(candidates_left))}")
+		elif VERBOSE:
+			print(f"\tRemains: {candidates_left}, eliminated: {less_voted}")
+		elif tie:
+			print(f"Tied candidates: {less_voted}, random tie-break proposal: {random.sample(less_voted, n - len(candidates_left))}")
+
+	print(f"Winner(s): {candidates_left}")
