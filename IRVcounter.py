@@ -3,7 +3,7 @@
 import argparse
 import random
 
-VERBOSE = True
+VERBOSE = False
 
 def count_first_choice_votes(candidates: list, ballots: list[list]) -> dict:
 	"""
@@ -128,9 +128,9 @@ def counter(candidates: list, ballots: list[list], n: int):
 					tie = len(candidates_left) - len(less_voted) < n
 					if VERBOSE:
 						print(f"\t\tretrospective tie-break selects for elimination: {retrospective_less_voted}")
-				else:
+				elif VERBOSE:
 					print(f"\t\tUnable to resolve tie, random selection required")
-			else:
+			elif VERBOSE:
 				print(f"\t\trestricted recount selects for elimination: {recount_less_voted}")
 
 		eliminate_less_voted(candidates_left, ballots_left, less_voted)
