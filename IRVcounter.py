@@ -21,7 +21,7 @@ def count_first_choice_votes(candidates: list, ballots: list[list]) -> dict:
 
 	return votes
 
-def restricted_recount(tied: list, ballots: list[list]) -> list:
+def restricted_recount_tiebreak(tied: list, ballots: list[list]) -> list:
 	"""
 	Perform a restricted pairwise recount among tied candidates.
 	For each ballot, find the highest-ranked candidate among `tied` and
@@ -111,7 +111,7 @@ def counter(candidates: list, ballots: list[list], n: int):
 		tie = len(candidates_left) - len(less_voted) < n
 
 		if tie:
-			recount_less_voted = restricted_recount(less_voted, ballots_left)
+			recount_less_voted = restricted_recount_tiebreak(less_voted, ballots_left)
 			if VERBOSE:
 				print(f"\tTie among {less_voted}")
 
