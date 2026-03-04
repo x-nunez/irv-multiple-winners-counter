@@ -5,22 +5,21 @@ import random
 
 VERBOSE = True
 
-def get_less_voted(candidates: list, ballots: list[list]) -> list:
+def count_first_choice_votes(candidates: list, ballots: list[list]) -> dict:
 	"""
-	Calculate less voted candidate(s)
+	Count first-choice votes for current candidates
 	Args:
 		candidates (list): A list of candidates
 		ballots (list[list]): A list of ballots, where each ballot is a list of ranked candidates
 	Returns:
-		list: A list of less voted candidate(s)
+		dict: Mapping candidate -> first-choice votes
 	"""
-	votes = [0] * len(candidates)
+	votes = {c: 0 for c in candidates}
 
 	for b in ballots:
-		votes[candidates.index(b[0])] += 1
+		votes[b[0]] += 1
 
-	min_votes = min(votes)
-	return [candidates[i] for i in range(len(candidates)) if votes[i] == min_votes]
+	return votes
 
 def restricted_recount(tied: list, ballots: list[list]) -> list:
 	"""
@@ -43,6 +42,26 @@ def restricted_recount(tied: list, ballots: list[list]) -> list:
 
 	min_votes = min(votes.values())
 	return [c for c in tied if votes[c] == min_votes]
+
+def retrospective_round_tiebreak(tied: list, previous_round_votes: list[dict]):
+	"""
+	Find the most recent prior round where tied candidates are not tied at the
+	lowest vote total, then eliminate the unique lowest candidate in that round
+	Args:
+		tied (list): The candidates tied for elimination
+		previous_round_votes (list[dict]): Vote history, excluding current round
+	Returns:
+		list: A list with single candidate to eliminate, or []] when unresolved
+	"""
+	for round_votes in reversed(previous_round_votes):
+		min_votes = min([round_votes[c] for c in tied])
+
+		lowest = [c for c in tied if round_votes[c] == min_votes]
+
+		if len(lowest) < len(tied):
+			return lowest
+
+	return []
 
 def eliminate_less_voted(candidates: list, ballots: list[list], less_voted: list):
 	"""
@@ -77,24 +96,42 @@ def counter(candidates: list, ballots: list[list], n: int):
 			print(f"Candidates: {candidates}")
 
 	round = 0
+	round_vote_history = []
 	while (len(candidates_left) > n):
 		round += 1
 		if VERBOSE:
 			print(f"Round {round}:")
 
-		less_voted = get_less_voted(candidates_left, ballots_left)
+		current_votes = count_first_choice_votes(candidates_left, ballots_left)
+		round_vote_history.append(current_votes.copy())
+
+		min_votes = min(current_votes.values())
+		less_voted = [c for c in candidates_left if current_votes[c] == min_votes]
 
 		tie = len(candidates_left) - len(less_voted) < n
 
 		if tie:
 			recount_less_voted = restricted_recount(less_voted, ballots_left)
-
 			if VERBOSE:
-				print(f"\tTie among {less_voted}, restricted recount selects for elimination: {recount_less_voted}")
+				print(f"\tTie among {less_voted}")
 
 			if len(recount_less_voted) < len(less_voted):
 				less_voted = recount_less_voted
 				tie = len(candidates_left) - len(less_voted) < n
+			if tie:
+				retrospective_less_voted = retrospective_round_tiebreak(less_voted, round_vote_history[:-1])
+				while (retrospective_less_voted != [] and len(candidates_left) - len(retrospective_less_voted) < n):
+					retrospective_less_voted = retrospective_round_tiebreak(less_voted, round_vote_history[:-1])
+
+				if retrospective_less_voted:
+					less_voted = retrospective_less_voted
+					tie = len(candidates_left) - len(less_voted) < n
+					if VERBOSE:
+						print(f"\t\tretrospective tie-break selects for elimination: {retrospective_less_voted}")
+				else:
+					print(f"\t\tUnable to resolve tie, random selection required")
+			else:
+				print(f"\t\trestricted recount selects for elimination: {recount_less_voted}")
 
 		eliminate_less_voted(candidates_left, ballots_left, less_voted)
 
