@@ -118,6 +118,7 @@ def counter(candidates: list, ballots: list[list], n: int):
 			if len(recount_less_voted) < len(less_voted):
 				less_voted = recount_less_voted
 				tie = len(candidates_left) - len(less_voted) < n
+
 			if tie:
 				retrospective_less_voted = retrospective_round_tiebreak(less_voted, round_vote_history[:-1])
 				while (retrospective_less_voted != [] and len(candidates_left) - len(retrospective_less_voted) < n):
@@ -128,8 +129,10 @@ def counter(candidates: list, ballots: list[list], n: int):
 					tie = len(candidates_left) - len(less_voted) < n
 					if VERBOSE:
 						print(f"\t\tretrospective tie-break selects for elimination: {retrospective_less_voted}")
+
 				elif VERBOSE:
 					print(f"\t\tUnable to resolve tie, random selection required")
+
 			elif VERBOSE:
 				print(f"\t\trestricted recount selects for elimination: {recount_less_voted}")
 
