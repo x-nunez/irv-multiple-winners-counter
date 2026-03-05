@@ -145,3 +145,101 @@ def counter(candidates: list, ballots: list[list], n: int):
 			print(f"Tied candidates: {less_voted}, random tie-break proposal: {r.sample(less_voted, n - len(candidates_left))}")
 
 	print(f"Winner(s): {candidates_left}")
+
+def check_ballot(ballot: list) -> tuple:
+	"""
+	Check if a ballot is valid, blank, or null.
+	A ballot is valid if:
+		- It has no candidates marked (blank), or
+		- The k marked candidates have rankings exactly {1, 2, ..., k}
+	Args:
+		ballot (list): A list of ranked candidates
+	Returns:
+		tuple: (cleaned_ballot, status) where cleaned_ballot has empty strings
+			removed and status is 'valid', 'blank', or 'null'
+	"""
+	aux = []
+	blank = False
+	semiblank = False
+	for c in ballot:
+		if blank or semiblank:
+			if c != '':
+				return ballot, 'null'
+		elif c == '':
+			if len(aux) == 0:
+				blank = True
+			else:
+				semiblank = True
+		elif c not in aux:
+			aux.append(c)
+		else:
+			return ballot, 'null'
+
+	ballot = [c for c in ballot if c != '']
+
+	if blank:
+		return ballot, 'blank'
+	return ballot, 'valid'
+
+def main():
+	global VERBOSE
+	parser = ap.ArgumentParser()
+	parser.add_argument("inputfile", help="Path to the results (CSV)")
+	parser.add_argument("-v", "--verbose", action="store_true", help="Shows the counting process")
+	parser.add_argument("-w", "--winners", type=int, default=1, help="Number of eligible candidates (default: 1)")
+	args = parser.parse_args()
+	VERBOSE = args.verbose
+
+	if args.winners <= 0:
+		print("Error: Number of winners must be greater than 0")
+		return
+
+	print("▗▄▄▄▖▗▄▄▖ ▗▖  ▗▖     ▗▄▄▖ ▗▄▖ ▗▖ ▗▖▗▖  ▗▖▗▄▄▄▖▗▄▄▄▖▗▄▄▖ ")
+	print("  █  ▐▌ ▐▌▐▌  ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▛▚▖▐▌  █  ▐▌   ▐▌ ▐▌")
+	print("  █  ▐▛▀▚▖▐▌  ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▝▜▌  █  ▐▛▀▀▘▐▛▀▚▖")
+	print("▗▄█▄▖▐▌ ▐▌ ▝▚▞▘     ▝▚▄▄▖▝▚▄▞▘▝▚▄▞▘▐▌  ▐▌  █  ▐▙▄▄▖▐▌ ▐▌")
+	print("                                IRV counter tool by Xian\n")
+
+	if not os.path.exists(args.inputfile):
+		print(f"Error: {args.inputfile} is not a valid input")
+		return
+
+	csv = pd.read_csv(args.inputfile, header=None, sep=';', dtype=str, keep_default_na=False)
+
+	valid_ballots = []
+	blank_ballots = []
+	null_ballots = []
+	for _, row in csv.iterrows():
+		ballot = row.tolist()
+		ballot, ballot_type = check_ballot(ballot)
+		if ballot_type == 'valid':
+			valid_ballots.append(ballot)
+		elif ballot_type == 'blank':
+			blank_ballots.append(ballot)
+		else:
+			null_ballots.append(ballot)
+
+	candidates = []
+	for b in valid_ballots:
+		for c in b:
+			if c not in candidates:
+				candidates.append(c)
+
+	if VERBOSE:
+		print(f"{len(valid_ballots)} valid ballots")
+	if VERBOSE:
+		print(f"{len(blank_ballots)} blank ballots")
+	if VERBOSE:
+		print(f"{len(null_ballots)} null ballots:")
+		for b in null_ballots:
+			print(f"\t{b}")
+	if VERBOSE:
+		print(f"\nCandidates: {candidates}")
+
+	if args.winners >= len(candidates):
+		print(f"Requested {args.winners} winners but only {len(candidates)} candidates. All are winners.")
+	else:
+		counter(candidates, valid_ballots, args.winners)
+
+if __name__ == "__main__":
+	main()
