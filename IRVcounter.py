@@ -110,9 +110,9 @@ def counter(candidates: list, ballots: list[list], n: int):
 		tie = len(candidates_left) - len(less_voted) < n
 
 		if tie:
-			recount_less_voted = restricted_recount_tiebreak(less_voted, ballots_left)
 			if VERBOSE:
 				print(f"\tTie among {less_voted}")
+			recount_less_voted = restricted_recount_tiebreak(less_voted, ballots_left)
 
 			if len(recount_less_voted) < len(less_voted):
 				less_voted = recount_less_voted
@@ -225,16 +225,19 @@ def main():
 			if c not in candidates:
 				candidates.append(c)
 
+	print(f"{len(valid_ballots)} valid ballots")
 	if VERBOSE:
-		print(f"{len(valid_ballots)} valid ballots")
+		for b in valid_ballots:
+			print(f"\t{b}")
+	print(f"{len(blank_ballots)} blank ballots")
 	if VERBOSE:
-		print(f"{len(blank_ballots)} blank ballots")
+		for b in blank_ballots:
+			print(f"\t{b}")
+	print(f"{len(null_ballots)} null ballots:")
 	if VERBOSE:
-		print(f"{len(null_ballots)} null ballots:")
 		for b in null_ballots:
 			print(f"\t{b}")
-	if VERBOSE:
-		print(f"\nCandidates: {candidates}")
+	print(f"\nCandidates: {candidates}")
 
 	if args.winners >= len(candidates):
 		print(f"Requested {args.winners} winners but only {len(candidates)} candidates. All are winners.")
