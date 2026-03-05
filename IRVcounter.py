@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-import argparse
-import random
+import argparse as ap
+import pandas as pd
+import random as r
+import os
 
 VERBOSE = False
 
@@ -51,7 +53,7 @@ def retrospective_round_tiebreak(tied: list, previous_round_votes: list[dict]):
 		tied (list): The candidates tied for elimination
 		previous_round_votes (list[dict]): Vote history, excluding current round
 	Returns:
-		list: A list with single candidate to eliminate, or []] when unresolved
+		list: A list with single candidate to eliminate, or [] when unresolved
 	"""
 	for round_votes in reversed(previous_round_votes):
 		min_votes = min([round_votes[c] for c in tied])
@@ -92,15 +94,12 @@ def counter(candidates: list, ballots: list[list], n: int):
 	candidates_left = candidates.copy()
 	ballots_left = [b.copy() for b in ballots]
 
-	if VERBOSE:
-			print(f"Candidates: {candidates}")
-
-	round = 0
+	current_round = 0
 	round_vote_history = []
 	while (len(candidates_left) > n):
-		round += 1
+		current_round += 1
 		if VERBOSE:
-			print(f"Round {round}:")
+			print(f"Round {current_round}:")
 
 		current_votes = count_first_choice_votes(candidates_left, ballots_left)
 		round_vote_history.append(current_votes.copy())
@@ -122,7 +121,7 @@ def counter(candidates: list, ballots: list[list], n: int):
 			if tie:
 				retrospective_less_voted = retrospective_round_tiebreak(less_voted, round_vote_history[:-1])
 				while (retrospective_less_voted != [] and len(candidates_left) - len(retrospective_less_voted) < n):
-					retrospective_less_voted = retrospective_round_tiebreak(less_voted, round_vote_history[:-1])
+					retrospective_less_voted = retrospective_round_tiebreak(retrospective_less_voted, round_vote_history[:-1])
 
 				if retrospective_less_voted:
 					less_voted = retrospective_less_voted
@@ -139,10 +138,10 @@ def counter(candidates: list, ballots: list[list], n: int):
 		eliminate_less_voted(candidates_left, ballots_left, less_voted)
 
 		if VERBOSE and tie:
-			print(f"\tRemains: {candidates_left}, tied {less_voted}, random tie-break proposal: {random.sample(less_voted, n - len(candidates_left))}")
+			print(f"\tRemains: {candidates_left}, tied {less_voted}, random tie-break proposal: {r.sample(less_voted, n - len(candidates_left))}")
 		elif VERBOSE:
 			print(f"\tRemains: {candidates_left}, eliminated: {less_voted}")
 		elif tie:
-			print(f"Tied candidates: {less_voted}, random tie-break proposal: {random.sample(less_voted, n - len(candidates_left))}")
+			print(f"Tied candidates: {less_voted}, random tie-break proposal: {r.sample(less_voted, n - len(candidates_left))}")
 
 	print(f"Winner(s): {candidates_left}")
